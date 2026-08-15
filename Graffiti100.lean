@@ -18,10 +18,11 @@ lemma small_arithmetic
     rw [ceilDiv_le_iff_le_mul hL0]
     simpa [mul_comm] using hamL
   obtain ⟨t, rfl⟩ := Nat.exists_eq_add_of_le hm
+  have ht : (0 : ℝ) ≤ (t : ℝ) := by positivity
   interval_cases a <;> interval_cases L
   all_goals try omega
   all_goals norm_num [Nat.ceilDiv_eq_add_pred_div] at *
   all_goals ring_nf
-  all_goals positivity
+  all_goals nlinarith [sq_nonneg (t : ℝ)]
 
 end Graffiti100
