@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Restore Lake workspace cache
+      - name: Restore pruned Lake workspace cache
         id: lake-cache
         uses: actions/cache/restore@v4
         with:
@@ -22,7 +22,9 @@ jobs:
             .lake/packages
             .lake/build
             lake-manifest.json
-          key: lean-lake-v1-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
+          key: lean-lake-v2-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
+          restore-keys: |
+            lean-lake-v1-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
       - name: Install elan
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
@@ -33,10 +35,19 @@ jobs:
           elan toolchain install leanprover/lean4:v4.27.0
           lake --version
           if [ ! -f lake-manifest.json ]; then lake update; fi
-      - name: Restore mathlib binary cache
+      - name: Restore mathlib binary cache when absent
+        run: |
+          if [ ! -f .lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean ]; then
+            lake exe cache get
+          fi
+      - name: Prune non-Lean build products
         if: steps.lake-cache.outputs.cache-hit != 'true'
-        run: lake exe cache get
-      - name: Save Lake workspace cache
+        run: |
+          find .lake/packages -type d -name .git -prune -exec rm -rf '{}' +
+          find .lake/packages -type d -path '*/.lake/build/ir' -prune -exec rm -rf '{}' +
+          find .lake/packages -type f \( -name '*.o' -o -name '*.a' -o -name '*.so' \) -delete
+          du -sh .lake/packages .lake/build || true
+      - name: Save pruned Lake workspace cache
         if: steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
@@ -44,9 +55,9 @@ jobs:
             .lake/packages
             .lake/build
             lake-manifest.json
-          key: lean-lake-v1-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
+          key: lean-lake-v2-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
       - name: Kernel-check all proofs
-        run: lake build --wfail
+        run: lake env lean -DwarningAsError=true Graffiti100.lean
       - name: Reject locally declared axioms
         run: |
           if grep -R --line-number -E '^[[:space:]]*axiom[[:space:]]' --include='*.lean' . --exclude-dir=.lake; then
