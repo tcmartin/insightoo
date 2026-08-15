@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Restore pruned Lake workspace cache
+      - name: Restore Lean workspace cache
         id: lake-cache
         uses: actions/cache/restore@v4
         with:
@@ -22,7 +22,7 @@ jobs:
             .lake/packages
             .lake/build
             lake-manifest.json
-          key: lean-lake-v2-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
+          key: lean-lake-v3-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
           restore-keys: |
             lean-lake-v1-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
       - name: Install elan
@@ -40,14 +40,13 @@ jobs:
           if [ ! -f .lake/packages/mathlib/.lake/build/lib/lean/Mathlib.olean ]; then
             lake exe cache get
           fi
-      - name: Prune non-Lean build products
+      - name: Prune native compiler products
         if: steps.lake-cache.outputs.cache-hit != 'true'
         run: |
-          find .lake/packages -type d -name .git -prune -exec rm -rf '{}' +
           find .lake/packages -type d -path '*/.lake/build/ir' -prune -exec rm -rf '{}' +
           find .lake/packages -type f \( -name '*.o' -o -name '*.a' -o -name '*.so' \) -delete
           du -sh .lake/packages .lake/build || true
-      - name: Save pruned Lake workspace cache
+      - name: Save Lean workspace cache
         if: steps.lake-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
@@ -55,7 +54,7 @@ jobs:
             .lake/packages
             .lake/build
             lake-manifest.json
-          key: lean-lake-v2-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
+          key: lean-lake-v3-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
       - name: Kernel-check all proofs
         run: lake env lean -DwarningAsError=true Graffiti100.lean
       - name: Reject locally declared axioms
