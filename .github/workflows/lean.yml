@@ -15,7 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Restore Lake workspace cache
-        uses: actions/cache@v4
+        id: lake-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             .lake/packages
@@ -34,6 +35,15 @@ jobs:
           lake update
       - name: Restore mathlib binary cache
         run: lake exe cache get
+      - name: Save Lake workspace cache
+        if: steps.lake-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .lake/packages
+            .lake/build
+            lake-manifest.json
+          key: lean-lake-v1-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
       - name: Kernel-check all proofs
         run: lake build --wfail
       - name: Reject locally declared axioms
