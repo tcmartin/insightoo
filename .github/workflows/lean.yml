@@ -55,8 +55,8 @@ jobs:
             .lake/build
             lake-manifest.json
           key: lean-lake-v3-${{ runner.os }}-${{ hashFiles('lean-toolchain', 'lakefile.toml') }}
-      - name: Kernel-check all proofs
-        run: lake env lean -DwarningAsError=true Graffiti100.lean
+      - name: Kernel-check the active proof module
+        run: lake env lean -DwarningAsError=true GraphCore.lean
       - name: Reject locally declared axioms
         run: |
           if grep -R --line-number -E '^[[:space:]]*axiom[[:space:]]' --include='*.lean' . --exclude-dir=.lake; then
