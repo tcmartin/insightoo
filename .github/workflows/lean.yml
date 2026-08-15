@@ -32,8 +32,9 @@ jobs:
         run: |
           elan toolchain install leanprover/lean4:v4.27.0
           lake --version
-          lake update
+          if [ ! -f lake-manifest.json ]; then lake update; fi
       - name: Restore mathlib binary cache
+        if: steps.lake-cache.outputs.cache-hit != 'true'
         run: lake exe cache get
       - name: Save Lake workspace cache
         if: steps.lake-cache.outputs.cache-hit != 'true'
