@@ -14,17 +14,16 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Install Lean 4.27
-        uses: leanprover/lean-action@v1
-        with:
-          auto-config: false
-          build: false
-          test: false
-          lint: false
-          use-mathlib-cache: false
-          use-github-cache: false
-      - name: Resolve dependencies
-        run: lake update
+      - name: Install elan
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh \
+            | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+      - name: Install pinned Lean and resolve dependencies
+        run: |
+          elan toolchain install leanprover/lean4:v4.27.0
+          lake --version
+          lake update
       - name: Restore mathlib binary cache
         run: lake exe cache get
       - name: Kernel-check all proofs
