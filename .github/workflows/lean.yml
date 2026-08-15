@@ -14,17 +14,24 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-      - name: Build with Lean 4.27 and mathlib
+      - name: Install Lean 4.27
         uses: leanprover/lean-action@v1
         with:
-          build: true
+          auto-config: false
+          build: false
           test: false
           lint: false
-          use-mathlib-cache: true
-          use-github-cache: true
-      - name: Reject unfinished proofs
+          use-mathlib-cache: false
+          use-github-cache: false
+      - name: Resolve dependencies
+        run: lake update
+      - name: Restore mathlib binary cache
+        run: lake exe cache get
+      - name: Kernel-check all proofs
+        run: lake build --wfail
+      - name: Reject locally declared axioms
         run: |
-          if grep -R --line-number -E '\bsorry\b|admit|axiom' --include='*.lean' .; then
-            echo 'Unfinished proof or added axiom detected.' >&2
+          if grep -R --line-number -E '^[[:space:]]*axiom[[:space:]]' --include='*.lean' . --exclude-dir=.lake; then
+            echo 'Locally declared axiom detected.' >&2
             exit 1
           fi
