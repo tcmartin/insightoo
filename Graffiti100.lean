@@ -19,7 +19,9 @@ lemma small_arithmetic
     simpa [mul_comm] using hamL
   obtain ⟨t, rfl⟩ := Nat.exists_eq_add_of_le hm
   interval_cases a <;> interval_cases L
+  all_goals try omega
   all_goals norm_num [Nat.ceilDiv_eq_add_pred_div] at *
+  all_goals ring_nf
   all_goals positivity
 
 end Graffiti100
